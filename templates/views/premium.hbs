@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Subscribe to Premium</title>
+     <link rel="icon" type="image/png" sizes="32x32" href="./images/favicon-32x32.png" />
+     <link rel="preconnect" href="https://fonts.gstatic.com" />
+     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet" />
+     <link rel="stylesheet" href="premium.css">
+</head>
+<body>
+     <header>
+    <h1>Our Pricing</h1>
+    <div class="toggle">
+      <label>Annually </label>
+      <div class="toggle-btn">
+        <input type="checkbox" class="checkbox" id="checkbox" />
+        <label class="sub" id="sub" for="checkbox">
+          <div class="circle"></div>
+        </label>
+      </div>
+      <label> Monthly</label>
+    </div>
+  </header>
+  <div class="cards">
+    <div class="card shadow">
+      <ul>
+        <li class="pack">Basic</li>
+        <li id="basic" class="price bottom-bar">FREE</li>
+        <li class="bottom-bar">Limited Chat Assistance</li>
+        <li class="bottom-bar">Career Assessment</li>
+        <li class="bottom-bar">No Bookmarks</li>
+        <li><button class="btn">Learn More</button></li>
+      </ul>
+    </div>
+    <div class="card active">
+      <ul>
+        <li class="pack">Premium</li>
+        <li id="professional" class="price bottom-bar">&dollar;49.99</li>
+        <li class="bottom-bar">Unlimited AI Assistance</li>
+        <li class="bottom-bar">Chat Bookmarking</li>
+        <li class="bottom-bar">Career Progress Tracking</li>
+        <li><button class="btn active-btn">Subscribe</button></li>
+      </ul>
+    </div>
+    <div class="card shadow">
+      <ul>
+        <li class="pack">Master</li>
+        <li id="master" class="price bottom-bar">&dollar;99.99</li>
+         <li class="bottom-bar">All Premium features</li>
+        <li class="bottom-bar">Best Course</li>
+        <li class="bottom-bar">No Advertisements</li>
+        <li><button class="btn">Subscribe</button></li>
+      </ul>
+    </div>
+  </div>
+  <script>
+     const checkbox = document.getElementById("checkbox");
+     const professional = document.getElementById("professional");
+     const master = document.getElementById("master");
+     const basic = document.getElementById("basic");
+
+     checkbox.addEventListener("click", () => {
+     professional.textContent =
+     professional.textContent === "$49.99" ? "$4.99 " : "$49.99";
+     master.textContent = master.textContent === "$99.99" ? "$9.99" : "$99.99";
+     });
+  </script>
+</body>
+</html>
