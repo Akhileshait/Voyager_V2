@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .result-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .feedback-section {
+            margin-top: 20px;
+        }
+        .chart {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        <h1>Test Results</h1>
+        <p><strong>Field:</strong> {{field}}</p>
+        <p><strong>Score:</strong> {{score}}%</p>
+        <p><strong>Correct Answers:</strong> {{correctCount}}</p>
+        <p><strong>Incorrect Answers:</strong> {{incorrectCount}}</p>
+        <p><strong>Passed:</strong> {{#if passedCount}}Yes{{else}}No{{/if}}</p>
+
+        <div class="chart">
+            <canvas id="timeChart"></canvas>
+        </div>
+
+        <div class="feedback-section">
+            <h2>AI Feedback</h2>
+            <ul>
+                {{#each feedbackData.feedback}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+            <h3>Additional Tests:</h3>
+            <ul>
+                {{#each feedbackData.additionalTests}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+            <h3>Additional Courses:</h3>
+            <ul>
+                {{#each feedbackData.additionalCourses}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('timeChart').getContext('2d');
+        const timeLabels = JSON.parse('{{timeLabels}}');
+        const timeData = JSON.parse('{{timeData}}');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: [{
+                    label: 'Time Spent (seconds)',
+                    data: timeData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false,
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Objective Questions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #timer {
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #e94e77;
+            text-align: center;
+        }
+        form {
+            width: 100%;
+            max-width: 600px;
+        }
+        .question-container {
+            margin-bottom: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: none; /* Hide all questions initially */
+        }
+        .question-container p {
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .options-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .option-button {
+            background-color: #4a90e2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .option-button.selected {
+            background-color: #35bd6e;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+        .navigation-buttons button {
+            flex: 1;
+            margin: 0 5px;
+        }
+        #submit-button {
+            display: block;
+            margin-top: 20px;
+            background-color: #4a90e2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #submit-button:hover {
+            background-color: #357abd;
+        }
+        #prev-button, #next-button {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Objective Questions</h1>
+    <div id="timer">Time for current question: <span id="timer-count">0:00</span></div>
+    <form id="questions-form">
+
+        {{#each questionsWithAnswers}}
+        <div class="question-container" data-index="{{@index}}">
+            <p><strong>{{incrementIndex @index}}. {{this.question}}</strong></p>
+
+            <div class="options-container">
+                {{#each this.options}}
+                <button type="button" class="option-button" data-answer="{{this}}" data-question="{{@../index}}">
+                    {{this}}
+                </button>
+                {{/each}}
+            </div>
+        </div>
+        {{#unless @last}}
+        {{/unless}}
+        {{/each}}
+        <div class="navigation-buttons">
+            <button type="button" id="prev-button">Previous</button>
+            <button type="button" id="next-button">Next</button>
+        </div>
+        <button type="submit" id="submit-button">Submit Answers</button>
+        <input type="hidden" name="timings" id="timings">
+        <input type="hidden" name="answers" id="answers">
+    </form>
+    <script>
+        let currentQuestion = 0;
+        const questions = document.querySelectorAll('.question-container');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const submitButton = document.getElementById('submit-button');
+        const timerElement = document.getElementById('timer-count');
+        const timings = {};
+        const selectedAnswers = {};
+        let timerInterval;
+
+        function showQuestion(index) {
+            questions.forEach((question, i) => {
+                question.style.display = i === index ? 'block' : 'none';
+            });
+
+            prevButton.style.display = index > 0 ? 'inline-block' : 'none';
+            nextButton.style.display = index < questions.length - 1 ? 'inline-block' : 'none';
+            submitButton.style.display = index === questions.length - 1 ? 'inline-block' : 'none';
+
+            clearInterval(timerInterval);
+            let seconds = 0;
+            timerInterval = setInterval(() => {
+                seconds++;
+                timerElement.textContent = `0:${seconds < 10 ? '0' + seconds : seconds}`;
+            }, 1000);
+        }
+
+        function handleOptionClick(event) {
+            const button = event.target;
+            const questionIndex = button.dataset.question;
+            const answer = button.dataset.answer;
+
+            // Remove 'selected' class from all buttons in the current question
+            document.querySelectorAll(`.question-container[data-index="${questionIndex}"] .option-button`).forEach(btn => btn.classList.remove('selected'));
+
+            // Add 'selected' class to the clicked button
+            button.classList.add('selected');
+
+            // Update the selected answer for the current question
+            selectedAnswers[questionIndex] = answer;
+        }
+
+        nextButton.addEventListener('click', () => {
+            timings[`q${currentQuestion}`] = parseInt(timerElement.textContent.split(':')[1]);
+            currentQuestion++;
+            showQuestion(currentQuestion);
+        });
+
+        prevButton.addEventListener('click', () => {
+            timings[`q${currentQuestion}`] = parseInt(timerElement.textContent.split(':')[1]);
+            currentQuestion--;
+            showQuestion(currentQuestion);
+        });
+
+        document.getElementById('questions-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Store the timing for the last question
+            timings[`q${currentQuestion}`] = parseInt(timerElement.textContent.split(':')[1]);
+            document.getElementById('timings').value = JSON.stringify(timings);
+
+            // Collect form data
+            const formData = {
+                answers: selectedAnswers,
+                timings: timings,
+                field: '{{field}}', 
+            };
+
+            // Send data as JSON
+            fetch('/submit-answers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text(); // Use text() if server returns HTML
+                } else {
+                    throw new Error('Network response was not ok.');
+                }
+            })
+            .then(html => {
+                // Handle the response (assuming HTML is returned for rendering)
+                document.open();
+                document.write(html);
+                document.close();
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        });
+
+        // Add event listeners to option buttons
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('option-button')) {
+                handleOptionClick(event);
+            }
+        });
+
+        showQuestion(0);
+    </script>
+</body>
+</html>

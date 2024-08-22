@@ -1,319 +1,448 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 const path = require("path");
 const hbs = require("hbs");
-const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
-
-const User = require("./models/User");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-let  interest1 ; 
-let interest2 ; 
-let interest3 ;
-const app = express();
+const bcrypt = require("bcrypt");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
-const bcrypt = require('bcrypt');
+const flash = require("connect-flash");
+const mongoose = require("mongoose");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require('dotenv').config();
 
-// Set up GoogleGenerativeAI
-const api_key = "AIzaSyCSx1UbyW73TVEc_-XR9JGuKchXT69idBE"; // Replace with your API key
-const genAI = new GoogleGenerativeAI(api_key);
-const generationConfig = { temperature: 0.9, topP: 1, topK: 1, maxOutputTokens: 4096 };
-// ...
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.json());
-// Get Generative Model
-const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
+const app = express();
 
-var userName="good";
-// Express setup
-app.set("views", path.join(__dirname, "/../templates/views"));
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => {
+  console.log("Connected to MongoDB");
+}).catch(err => {
+  console.error("MongoDB connection error:", err);
+});
+
+// Define User Schema
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  tests: [
+    {
+      field: String,
+      questions: [
+        {
+          question: String,
+          options: [String],
+          correctAnswer: String,
+          userAnswer: String,
+        }
+      ],
+      score: Number,
+      passed: Boolean,
+      timings: [Number],
+      date: { type: Date, default: Date.now }
+    }
+  ]
+});
+
+// Compile model from schema
+const User = mongoose.model("User", userSchema);
+
+// Set up view engine
 app.set("view engine", "hbs");
+app.set("views", path.join(__dirname, "/../templates/views"));
 hbs.registerPartials(path.join(__dirname, "/../templates/views/partials"));
 app.use(express.static(path.join(__dirname, "/../public")));
-app.use(
-    session({
-      secret: "your-secret-key", // Replace with a strong and secure key
-      resave: true,
-      saveUninitialized: true,
-    })
-);
-const ChatSchema = new mongoose.Schema({
-  username: String,
-  question: String,
-  answer: String
-});
 
-const CardSchema = new mongoose.Schema({
-  username: String,
-  projectName: String,
-  projectDescription: String
-});
-
-// Define a model using the CardSchema
-const Card = mongoose.model('Card', CardSchema);
-function removeStars(inputString) {
-  // Use the replace method with a regular expression to remove all "*" symbols
-  cleanedString="";
-  for(let i=0;i<inputString.length;i++){
-    if(inputString[i]>='0' && inputString[i]<='9' && inputString[i+1]=='.'){
-      cleanedString+="<br>";
-    }
-      cleanedString+=inputString[i];
-    
-  }
-  substr="Career Action Plan"
-  if(inputString.includes(substr)){
-  let a=inputString.indexOf(substr);
-   str1=cleanedString.substring(0,a);
-   str2=cleanedString.substring(a+18);
-   cleanedString=str1+"<br>"+"<b>"+"Career Action Plan"+"</b>"+str2;
-
-  }
-  cleanedString = cleanedString.replace(/\*\*/g, '').replace(/\*/g, '<br>');
-  return cleanedString;
-}
-
-// Define a model
-const Chat = mongoose.model('Chat', ChatSchema);
-
-app.use(bodyParser.urlencoded({ extended: true }));
+// Middleware to parse JSON and URL-encoded data
 app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Routes
-app.get("/", (req, res) => {
-  res.render("index", { title: "Catharsis" });
+// Set up session and flash
+app.use(session({
+  secret: 'yourSecretKey',
+  resave: false,
+  saveUninitialized: false,
+}));
+app.use(flash());
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport configuration for authentication
+passport.use(new LocalStrategy(
+  { usernameField: 'username', passwordField: 'password' },  // Explicitly specify fields
+  async (username, password, done) => {
+    try {
+      const user = await User.findOne({ username });
+      if (!user) {
+        return done(null, false, { message: 'Incorrect username.' });
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return done(null, false, { message: 'Incorrect password.' });
+      }
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  }
+));
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
 });
 
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+});
+
+// Route for the home page (redirect to login if not authenticated)
+app.get("/", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  res.redirect("/home");
+});
+
+// Route to render the login form
+app.get("/login", (req, res) => {
+  res.render("login", { message: req.flash("error") });
+});
+
+// Route to render the home page
+app.get("/home", (req, res) => {
+  res.render("index");
+});
+
+// Route to handle login logic
+app.post("/login", passport.authenticate("local", {
+  successRedirect: "/home",
+  failureRedirect: "/login",
+  failureFlash: true
+}));
+
+// Route to render the registration form
 app.get("/register", (req, res) => {
   res.render("register");
 });
-app.get("/premium", (req, res) => {
-  res.render("premium");
-});
 
-app.get("/login", (req, res) => {
-  res.render("login");
-});
-app.get("/interest", (req, res) => {
-  res.render("interest");
-});
-app.get("/dashboard", async (req, res) => {
-  try {
-    // Fetch the user's projects from the database
-    const userProjects = await Card.find({ username: userName }); // Assuming Card is your Mongoose model for projects
-
-    // Render the dashboard template with the user's projects data
-    res.render("dashboard", { userName, projects: userProjects });
-  } catch (error) {
-    console.error("Error fetching user's projects:", error);
-    res.status(500).send("Error fetching user's projects");
-  }
-});
-
-// app.post("/dashboard", (req, res)=>{
-//   userName="Hello";
-// })
-// Handle user responses to predefined questions
-app.post('/handle-interest', async (req, res) => {
-  const { interest1, interest2, interest3 } = req.body;
-
-  try {
-    // Create a new document and save it to MongoDB
-    const chat = new Chat({ username: userName, question: interest1, answer: `${interest2}, ${interest3}` });
-    await chat.save();
-    res.status(200).send('Data saved successfully');
-  } catch (error) {
-    console.error('Error saving data:', error);
-    res.status(500).send('Error saving data');
-  }
-});
-
+// Route to handle registration logic
 app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-
+  const { username, password, name, email } = req.body;
   try {
-    const existingUser = await User.findOne({ username });
-
-    if (existingUser) {
-      return res.render("register", { error: "User already exists" });
-    }
-
-    const newUser = new User({ username, password });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ username, password: hashedPassword, name, email });
     await newUser.save();
     res.redirect("/login");
-  } catch (error) {
-    console.error(error);
-    res.render("register", { error: "Registration failed" });
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.redirect("/register");
   }
 });
 
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const user = await User.findOne({ username });
-
-    if (!user) {
-      return res.render("login", { error: "Invalid username or password" });
-    }
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      return res.render("login", { error: "Invalid username or password" });
-    }
-
-    req.session.user = user.username;
-    userName=user.username;
-    console.log("login successfully");
-    res.redirect("/interest");
-  } catch (error) {
-    console.error(error);
-    res.render("login", { error: "Login failed" });
+// Middleware to protect routes
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
   }
-});
+  res.redirect("/login");
+}
+const api_key = process.env.GOOGLE_GENERATIVE_AI_KEY;
+const genAI = new GoogleGenerativeAI(api_key);
+const generationConfig = { temperature: 0.9, topP: 1, topK: 1, maxOutputTokens: 4096 };
+let generatedQuestionsWithAnswers = [];
 
-app.get('/ask', async (req, res) => {
-  // Retrieve interests from the query parameters
-  const { interest1, interest2, interest3 } = req.query;
+app.get("/ask" , (req, res) => {
+  res.render("ask");
+}); 
+app.post('/guidance', ensureAuthenticated, async (req, res) => {
+  const user = req.user;
 
-  if (!interest1 || !interest2 || !interest3) {
-    return res.status(400).send('Interests not found in query parameters');
+  if (!user) {
+    return res.status(401).json({ guidance: "User not authenticated" });
   }
 
+  // Example of extracting user data (you should tailor this to your specific data structure)
+  const { username, tests } = user;
+
   try {
-    // Retrieve previous chat history from the database
-    const previousChat = await Chat.find({ username: userName }).sort({ _id: -1 }).limit(5); // Assuming you want to retrieve the last 5 chats
+    // Format user data for guidance
+    const performanceSummary = {
+      totalTests: tests.length,
+      averageScore: tests.reduce((acc, test) => acc + (test.score || 0), 0) / tests.length,
+      passedTests: tests.filter(test => test.passed).length,
+      failedTests: tests.filter(test => !test.passed).length
+    };
 
-    let prompt ="Hello Gemini, You will suggest career and give guidance to the student based on the certain question that are asked to the user and are given below. Please only give help related to the career and suggest action plans."
-    prompt = prompt + " Previous chat history:\n";
-    console.log(prompt);
-    if (previousChat.length > 0) {
-      // Generate prompt including previous questions and answers
-      previousChat.forEach((chat, index) => {
-        prompt += `${index + 1}. Question: ${chat.question}\n`;
-        prompt += `   Answer: ${chat.answer}\n`;
-      });
-    } else {
-      // If no previous chat history exists
-      prompt += `No previous chat history found.\n`;
-    }
+    const prompt = `
+      Based on the following user performance data, provide career guidance and suggest potential career paths:
+      User: ${username}
+      Performance Summary: ${JSON.stringify(performanceSummary)}
 
-    // Add the new question to the prompt
-    prompt += `\nNew question: Hello Gemini, You will suggest career and give guidance to the student based on the certain question that are asked to the user and are given below. Please only give help related to the career and suggest career action plans: Hobby and activity that i do in my free time is ${interest1}, I am passionate about ${interest2} and I like ${interest3}`;
+      Provide a detailed career guidance including suggestions for improvement and possible career paths.`;
 
-    // Generate career guidance based on the stored interests and previous chat history
+    // Generate guidance using Google Generative AI
+    const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
     const response = await model.generateContent(prompt);
+    const generatedText = response.response ? await response.response.text() : '';
 
-    let guidance = response.response.text();
+    // Clean up the response
+    const cleanedText = generatedText
+      .replace(/```json|```/g, '')  // Remove markdown JSON blocks
+      .replace(/\*\*|\*/g, '')  // Remove asterisks
+      .replace(/(\r\n|\n|\r)/gm, '')  // Remove line breaks
+      .replace(/",\s*}/g, '"}')  // Fix trailing commas before closing braces
+      .trim();
 
-    // Remove "*" symbols from the guidance
-    guidance = removeStars(guidance);
-    console.log(guidance);
-    // Render the "ask" template and pass the guidance and previous chat history as variables
-    res.render('ask', { guidance, previousChat });
+    // Return the generated guidance
+    res.json({ guidance: cleanedText });
   } catch (error) {
-    console.error('Error fetching previous chat history:', error);
-    res.status(500).send('Error fetching previous chat history');
+    console.error("Error generating guidance:", error);
+    res.status(500).json({ guidance: "Failed to generate guidance" });
   }
 });
-app.post('/ask', async (req, res) => {
+
+app.post("/ask", async (req, res) => {
+  const { question } = req.body;
   try {
-    const { question } = req.body;
+    const prompt = `You are a career guidance chat bot. Answer the following question: ${question}`;
+  
+    const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
+    const response = await model.generateContent(prompt);
+    const generatedText = response.response ? await response.response.text() : '';
 
-    // Retrieve previous chat history of the current user from the database
-    const previousChat = await Chat.find({ username: userName }).sort({ _id: -1 }).limit(5);
+    // Enhanced cleanup: Remove any problematic characters or symbols
+    const cleanedText = generatedText
+      .replace(/```json|```/g, '')  // Remove markdown JSON blocks
+      .replace(/\*\*|\*/g, '')  // Remove asterisks
+      .replace(/(\r\n|\n|\r)/gm, '')  // Remove line breaks
+      .replace(/",\s*}/g, '"}')  // Fix trailing commas before closing braces
+      .trim();
+    
+    res.json({ response: cleanedText });
+  } catch (error) {
+    console.error("Error generating response:", error);
+    res.status(500).json({ response: "Failed to generate response" });
+  }
+});
 
-    // Create a prompt that includes the previous questions and answers
-    let prompt = '';
-    if (previousChat.length > 0) {
-      prompt += 'Previous chat history:\n';
-      previousChat.forEach(chat => {
-        prompt += `Question: ${chat.question}\nAnswer: ${chat.answer}\n\n`;
-      });
-    } else {
-      prompt += 'No previous chat history found.\n\n';
+
+// Route to render the question generation form
+app.get("/generate-questions", ensureAuthenticated, (req, res) => {
+  res.render("generate-questions-form");
+});
+
+app.post("/generate-questions", ensureAuthenticated, async (req, res) => {
+  const { field } = req.body;
+
+  try {
+    const prompt = `Generate a set of 10 objective-type questions related to ${field}, along with the correct answers...
+    Format the response as JSON:
+    [
+      {
+        "question": "<Question text>",
+        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "correctAnswer": "<Correct option>"
+      }
+    ]`;
+
+    const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
+    const response = await model.generateContent(prompt);
+    const generatedText = response.response ? await response.response.text() : '';
+
+    // Enhanced cleanup: Remove any problematic characters or symbols
+    const cleanedText = generatedText
+      .replace(/```json|```/g, '')  // Remove markdown JSON blocks
+      .replace(/\*\*|\*/g, '')  // Remove asterisks
+      .replace(/(\r\n|\n|\r)/gm, '')  // Remove line breaks
+      .replace(/",\s*}/g, '"}')  // Fix trailing commas before closing braces
+      .trim();
+
+    console.log("Cleaned Text:", cleanedText);  // Log cleaned text for debugging
+
+    let questionsWithAnswers = [];
+    try {
+      questionsWithAnswers = JSON.parse(cleanedText);
+    } catch (jsonError) {
+      console.error("Failed to parse JSON:", jsonError.message);
+
+      // Attempt to recover by cleaning up malformed entries
+      const cleanedEntries = cleanedText.split('},').map(entry => entry.trim() + '}');
+      questionsWithAnswers = cleanedEntries
+        .map(entry => {
+          try {
+            return JSON.parse(entry);
+          } catch {
+            return null;
+          }
+        })
+        .filter(entry => entry !== null);  // Filter out null (malformed) entries
+
+      if (questionsWithAnswers.length === 0) {
+        return res.status(500).send("Invalid JSON response from the AI model.");
+      }
     }
 
-    // Add the current question to the prompt
-    prompt += `New question:\n${question}`;
+    // Get the authenticated user
+    const user = req.user;
 
-    // Generate response based on the prompt
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text(); // Get the text content from the response
-    const cleanedResponseText = removeStars(responseText); // Remove stars from the text
+    // Create a test entry and save it to the user's tests
+    const testEntry = {
+      field: field,
+      questions: questionsWithAnswers.map(qna => ({
+        question: qna.question,
+        options: qna.options,
+        correctAnswer: qna.correctAnswer,
+        userAnswer: null // Placeholder for user answer
+      })),
+      score: null,
+      passed: null,
+      timings: [],
+      date: new Date()
+    };
 
-    // Save the current question and generated response to MongoDB
-    const chat = new Chat({
-      username: userName,
-      question: question,
-      answer: responseText
-    });
-    await chat.save();
+    user.tests.push(testEntry);
+    await user.save();
 
-    res.json({ response: cleanedResponseText });
+    // Render the questions page with the generated questions
+    res.render("questions", { field, questionsWithAnswers, cleanedText });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Content generation failed" });
+    console.error("Error generating questions:", error);
+    res.status(500).send("Failed to generate questions");
+  }
+});
+app.get("/test-details/:id", ensureAuthenticated, async (req, res) => {
+  try {
+    const user = req.user;
+    const testId = req.params.id;
+    const test = user.tests.id(testId);
+
+    if (!test) {
+      return res.status(404).send("Test not found");
+    }
+
+    res.render("test-details", { test });
+  } catch (error) {
+    console.error("Error fetching test details:", error);
+    res.status(500).send("Error fetching test details");
   }
 });
 
-let bookmarks=[]
-
-app.post('/api/bookmarks', async (req, res) => {
+hbs.registerHelper('pluck', function(array, key) {
+  return array.map(item => item[key]);
+});
+hbs.registerHelper('json', function(context) {
+  return JSON.stringify(context);
+});
+app.get('/dashboard', async (req, res) => {
   try {
-      const { answer } = req.body;
-      bookmarks.push({answer});
-      await bookmark.save();
-      res.status(201).json({ message: 'Bookmark added successfully' });
+      const user = await User.findById(req.user._id).populate('tests');
+      res.render('dashboard', { user });
   } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Server error' });
+      res.status(500).send('Server Error');
   }
 });
-
-
-
-app.post('/process-form', (req, res) => {
-  // Retrieve form data from the request body
-  const { interest1, interest2, interest3 } = req.body;
-
-  // Redirect the user to the /ask route with the interests in the query parameters
-  res.redirect(`/ask?interest1=${interest1}&interest2=${interest2}&interest3=${interest3}`);
-});
-// Database connection
-const uri = "mongodb+srv://nepalsss008:hacknova@cluster0.u2cqpgp.mongodb.net/";
-// Replace with your MongoDB Atlas URI
-
-async function connect() {
-  try {
-    await mongoose.connect(uri);
-    console.log("Connected to MongoDB");
-  } catch (error) {
-    console.error("Error connecting to MongoDB:", error);
-  }
-}
-
-app.post("/add-card", async (req, res) => {
-  const { projectName, projectDescription } = req.body;
-  console.log("Received Project Name:", projectName);
-  console.log("Received Project Description:", projectDescription);
-  // console.log(req.body); 
+// Route to handle answer submission
+app.post("/submit-answers", ensureAuthenticated, async (req, res) => {
+  const { answers, timings, field } = req.body;
 
   try {
-      // Save card details using the Card model
-      const card = new Card({ username: userName, projectName, projectDescription });
-      await card.save();
-      console.log("Card saved successfully");
-      res.redirect("/dashboard"); // Redirect to dashboard or any other page
+    let correctCount = 0;
+    let incorrectCount = 0;
+    const user = req.user;
+    const test = user.tests[user.tests.length - 1]; // Get the most recent test
+
+    // Compare user's answers with correct answers and calculate score
+    test.questions = test.questions.map((qna, index) => {
+      const userAnswer = answers[index];
+      const correctAnswer = qna.correctAnswer;
+
+      if (userAnswer === correctAnswer) {
+        correctCount++;
+      } else {
+        incorrectCount++;
+      }
+
+      return {
+        ...qna,
+        userAnswer: userAnswer || null, // Ensure null is used if no answer
+      };
+    });
+
+    test.score = (correctCount / test.questions.length) * 100;
+    test.passed = correctCount >= 7;
+    test.timings = Object.values(timings);
+    await user.save();
+
+    // Generate feedback data based on performance
+    const feedbackData = {
+      feedback: test.questions.map((qna, index) => {
+        return qna.userAnswer === qna.correctAnswer
+          ? `Well done on question ${index + 1}.`
+          : `Review the topic for question ${index + 1}.`;
+      }),
+      additionalTests: ["Practice more on weak areas."],
+      additionalCourses: ["Consider taking an advanced course in the field."],
+    };
+
+    const timeLabels = Object.keys(timings).map((key, index) => `Question ${index + 1}`);
+    const timeData = Object.values(timings);
+
+    // Save the feedback in the test entry
+    test.feedbackData = feedbackData;
+    await user.save();
+
+    // Render the result page with the feedback
+    res.render("result", {
+      field: field || 'N/A',
+      timeLabels: JSON.stringify(timeLabels),
+      timeData: JSON.stringify(timeData),
+      correctCount,
+      incorrectCount,
+      passedCount: test.passed ? 1 : 0,
+      failedCount: test.passed ? 0 : 1,
+      score: test.score,
+      feedbackData,
+    });
+
   } catch (error) {
-      console.error('Error saving card:', error);
-      res.status(500).send('Error saving card');
+    console.error("Error submitting answers:", error);
+    res.status(500).send("Failed to submit answers");
   }
 });
-
-connect();
-
-const port = process.env.PORT || 4000; 
+hbs.registerHelper('incrementIndex', function (index) {
+  return parseInt(index, 10) + 1;
+});
+app.get('/premium', (req, res) => {
+  res.render('premium');
+}); 
+// Start the server
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
