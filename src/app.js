@@ -9,19 +9,22 @@ const session = require("express-session");
 const flash = require("connect-flash");
 const mongoose = require("mongoose");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-require('dotenv').config();
+require("dotenv").config();
 
 const app = express();
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log("Connected to MongoDB");
-}).catch(err => {
-  console.error("MongoDB connection error:", err);
-});
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+  });
 
 // Define User Schema
 const userSchema = new mongoose.Schema({
@@ -52,14 +55,14 @@ const userSchema = new mongoose.Schema({
           options: [String],
           correctAnswer: String,
           userAnswer: String,
-        }
+        },
       ],
       score: Number,
       passed: Boolean,
       timings: [Number],
-      date: { type: Date, default: Date.now }
-    }
-  ]
+      date: { type: Date, default: Date.now },
+    },
+  ],
 });
 
 // Compile model from schema
@@ -76,11 +79,13 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Set up session and flash
-app.use(session({
-  secret: 'yourSecretKey',
-  resave: false,
-  saveUninitialized: false,
-}));
+app.use(
+  session({
+    secret: "yourSecretKey",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 app.use(flash());
 
 // Initialize Passport
@@ -88,24 +93,26 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Passport configuration for authentication
-passport.use(new LocalStrategy(
-  { usernameField: 'username', passwordField: 'password' },  // Explicitly specify fields
-  async (username, password, done) => {
-    try {
-      const user = await User.findOne({ username });
-      if (!user) {
-        return done(null, false, { message: 'Incorrect username.' });
+passport.use(
+  new LocalStrategy(
+    { usernameField: "username", passwordField: "password" }, // Explicitly specify fields
+    async (username, password, done) => {
+      try {
+        const user = await User.findOne({ username });
+        if (!user) {
+          return done(null, false, { message: "Incorrect username." });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Incorrect password." });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
       }
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-      return done(null, user);
-    } catch (err) {
-      return done(err);
     }
-  }
-));
+  )
+);
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -139,11 +146,14 @@ app.get("/home", (req, res) => {
 });
 
 // Route to handle login logic
-app.post("/login", passport.authenticate("local", {
-  successRedirect: "/home",
-  failureRedirect: "/login",
-  failureFlash: true
-}));
+app.post(
+  "/login",
+  passport.authenticate("local", {
+    successRedirect: "/home",
+    failureRedirect: "/login",
+    failureFlash: true,
+  })
+);
 
 // Route to render the registration form
 app.get("/register", (req, res) => {
@@ -155,7 +165,12 @@ app.post("/register", async (req, res) => {
   const { username, password, name, email } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, password: hashedPassword, name, email });
+    const newUser = new User({
+      username,
+      password: hashedPassword,
+      name,
+      email,
+    });
     await newUser.save();
     res.redirect("/login");
   } catch (err) {
@@ -172,14 +187,19 @@ function ensureAuthenticated(req, res, next) {
   res.redirect("/login");
 }
 const api_key = process.env.GOOGLE_GENERATIVE_AI_KEY;
-const genAI = new GoogleGenerativeAI(api_key);
-const generationConfig = { temperature: 0.9, topP: 1, topK: 1, maxOutputTokens: 4096 };
+const genAI = new GoogleGenerativeAI("AIzaSyDPk3Vb4LraE711ffz82bD7hrQ446YKMJU");
+const generationConfig = {
+  temperature: 0.9,
+  topP: 1,
+  topK: 1,
+  maxOutputTokens: 4096,
+};
 let generatedQuestionsWithAnswers = [];
 
-app.get("/ask" , (req, res) => {
+app.get("/ask", (req, res) => {
   res.render("ask");
-}); 
-app.post('/guidance', ensureAuthenticated, async (req, res) => {
+});
+app.post("/guidance", ensureAuthenticated, async (req, res) => {
   const user = req.user;
 
   if (!user) {
@@ -193,9 +213,10 @@ app.post('/guidance', ensureAuthenticated, async (req, res) => {
     // Format user data for guidance
     const performanceSummary = {
       totalTests: tests.length,
-      averageScore: tests.reduce((acc, test) => acc + (test.score || 0), 0) / tests.length,
-      passedTests: tests.filter(test => test.passed).length,
-      failedTests: tests.filter(test => !test.passed).length
+      averageScore:
+        tests.reduce((acc, test) => acc + (test.score || 0), 0) / tests.length,
+      passedTests: tests.filter((test) => test.passed).length,
+      failedTests: tests.filter((test) => !test.passed).length,
     };
 
     const prompt = `
@@ -206,16 +227,21 @@ app.post('/guidance', ensureAuthenticated, async (req, res) => {
       Provide a detailed career guidance including suggestions for improvement and possible career paths.`;
 
     // Generate guidance using Google Generative AI
-    const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      generationConfig,
+    });
     const response = await model.generateContent(prompt);
-    const generatedText = response.response ? await response.response.text() : '';
+    const generatedText = response.response
+      ? await response.response.text()
+      : "";
 
     // Clean up the response
     const cleanedText = generatedText
-      .replace(/```json|```/g, '')  // Remove markdown JSON blocks
-      .replace(/\*\*|\*/g, '')  // Remove asterisks
-      .replace(/(\r\n|\n|\r)/gm, '')  // Remove line breaks
-      .replace(/",\s*}/g, '"}')  // Fix trailing commas before closing braces
+      .replace(/```json|```/g, "") // Remove markdown JSON blocks
+      .replace(/\*\*|\*/g, "") // Remove asterisks
+      .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
+      .replace(/",\s*}/g, '"}') // Fix trailing commas before closing braces
       .trim();
 
     // Return the generated guidance
@@ -230,26 +256,30 @@ app.post("/ask", async (req, res) => {
   const { question } = req.body;
   try {
     const prompt = `You are a career guidance chat bot. Answer the following question: ${question}`;
-  
-    const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      generationConfig,
+    });
     const response = await model.generateContent(prompt);
-    const generatedText = response.response ? await response.response.text() : '';
+    const generatedText = response.response
+      ? await response.response.text()
+      : "";
 
     // Enhanced cleanup: Remove any problematic characters or symbols
     const cleanedText = generatedText
-      .replace(/```json|```/g, '')  // Remove markdown JSON blocks
-      .replace(/\*\*|\*/g, '')  // Remove asterisks
-      .replace(/(\r\n|\n|\r)/gm, '')  // Remove line breaks
-      .replace(/",\s*}/g, '"}')  // Fix trailing commas before closing braces
+      .replace(/```json|```/g, "") // Remove markdown JSON blocks
+      .replace(/\*\*|\*/g, "") // Remove asterisks
+      .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
+      .replace(/",\s*}/g, '"}') // Fix trailing commas before closing braces
       .trim();
-    
+
     res.json({ response: cleanedText });
   } catch (error) {
     console.error("Error generating response:", error);
     res.status(500).json({ response: "Failed to generate response" });
   }
 });
-
 
 // Route to render the question generation form
 app.get("/generate-questions", ensureAuthenticated, (req, res) => {
@@ -270,19 +300,24 @@ app.post("/generate-questions", ensureAuthenticated, async (req, res) => {
       }
     ]`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro", generationConfig });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      generationConfig,
+    });
     const response = await model.generateContent(prompt);
-    const generatedText = response.response ? await response.response.text() : '';
+    const generatedText = response.response
+      ? await response.response.text()
+      : "";
 
     // Enhanced cleanup: Remove any problematic characters or symbols
     const cleanedText = generatedText
-      .replace(/```json|```/g, '')  // Remove markdown JSON blocks
-      .replace(/\*\*|\*/g, '')  // Remove asterisks
-      .replace(/(\r\n|\n|\r)/gm, '')  // Remove line breaks
-      .replace(/",\s*}/g, '"}')  // Fix trailing commas before closing braces
+      .replace(/```json|```/g, "") // Remove markdown JSON blocks
+      .replace(/\*\*|\*/g, "") // Remove asterisks
+      .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
+      .replace(/",\s*}/g, '"}') // Fix trailing commas before closing braces
       .trim();
 
-    console.log("Cleaned Text:", cleanedText);  // Log cleaned text for debugging
+    console.log("Cleaned Text:", cleanedText); // Log cleaned text for debugging
 
     let questionsWithAnswers = [];
     try {
@@ -291,16 +326,18 @@ app.post("/generate-questions", ensureAuthenticated, async (req, res) => {
       console.error("Failed to parse JSON:", jsonError.message);
 
       // Attempt to recover by cleaning up malformed entries
-      const cleanedEntries = cleanedText.split('},').map(entry => entry.trim() + '}');
+      const cleanedEntries = cleanedText
+        .split("},")
+        .map((entry) => entry.trim() + "}");
       questionsWithAnswers = cleanedEntries
-        .map(entry => {
+        .map((entry) => {
           try {
             return JSON.parse(entry);
           } catch {
             return null;
           }
         })
-        .filter(entry => entry !== null);  // Filter out null (malformed) entries
+        .filter((entry) => entry !== null); // Filter out null (malformed) entries
 
       if (questionsWithAnswers.length === 0) {
         return res.status(500).send("Invalid JSON response from the AI model.");
@@ -313,16 +350,16 @@ app.post("/generate-questions", ensureAuthenticated, async (req, res) => {
     // Create a test entry and save it to the user's tests
     const testEntry = {
       field: field,
-      questions: questionsWithAnswers.map(qna => ({
+      questions: questionsWithAnswers.map((qna) => ({
         question: qna.question,
         options: qna.options,
         correctAnswer: qna.correctAnswer,
-        userAnswer: null // Placeholder for user answer
+        userAnswer: null, // Placeholder for user answer
       })),
       score: null,
       passed: null,
       timings: [],
-      date: new Date()
+      date: new Date(),
     };
 
     user.tests.push(testEntry);
@@ -352,19 +389,19 @@ app.get("/test-details/:id", ensureAuthenticated, async (req, res) => {
   }
 });
 
-hbs.registerHelper('pluck', function(array, key) {
-  return array.map(item => item[key]);
+hbs.registerHelper("pluck", function (array, key) {
+  return array.map((item) => item[key]);
 });
-hbs.registerHelper('json', function(context) {
+hbs.registerHelper("json", function (context) {
   return JSON.stringify(context);
 });
-app.get('/dashboard', async (req, res) => {
+app.get("/dashboard", async (req, res) => {
   try {
-      const user = await User.findById(req.user._id).populate('tests');
-      res.render('dashboard', { user });
+    const user = await User.findById(req.user._id).populate("tests");
+    res.render("dashboard", { user });
   } catch (error) {
-      console.error(error);
-      res.status(500).send('Server Error');
+    console.error(error);
+    res.status(500).send("Server Error");
   }
 });
 // Route to handle answer submission
@@ -410,7 +447,9 @@ app.post("/submit-answers", ensureAuthenticated, async (req, res) => {
       additionalCourses: ["Consider taking an advanced course in the field."],
     };
 
-    const timeLabels = Object.keys(timings).map((key, index) => `Question ${index + 1}`);
+    const timeLabels = Object.keys(timings).map(
+      (key, index) => `Question ${index + 1}`
+    );
     const timeData = Object.values(timings);
 
     // Save the feedback in the test entry
@@ -419,7 +458,7 @@ app.post("/submit-answers", ensureAuthenticated, async (req, res) => {
 
     // Render the result page with the feedback
     res.render("result", {
-      field: field || 'N/A',
+      field: field || "N/A",
       timeLabels: JSON.stringify(timeLabels),
       timeData: JSON.stringify(timeData),
       correctCount,
@@ -429,18 +468,17 @@ app.post("/submit-answers", ensureAuthenticated, async (req, res) => {
       score: test.score,
       feedbackData,
     });
-
   } catch (error) {
     console.error("Error submitting answers:", error);
     res.status(500).send("Failed to submit answers");
   }
 });
-hbs.registerHelper('incrementIndex', function (index) {
+hbs.registerHelper("incrementIndex", function (index) {
   return parseInt(index, 10) + 1;
 });
-app.get('/premium', (req, res) => {
-  res.render('premium');
-}); 
+app.get("/premium", (req, res) => {
+  res.render("premium");
+});
 // Start the server
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
