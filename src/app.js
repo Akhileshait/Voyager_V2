@@ -187,7 +187,7 @@ function ensureAuthenticated(req, res, next) {
   res.redirect("/login");
 }
 const api_key = process.env.GOOGLE_GENERATIVE_AI_KEY;
-const genAI = new GoogleGenerativeAI("AIzaSyDPk3Vb4LraE711ffz82bD7hrQ446YKMJU");
+const genAI = new GoogleGenerativeAI(api_key);
 const generationConfig = {
   temperature: 0.9,
   topP: 1,
