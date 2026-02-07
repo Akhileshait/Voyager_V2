@@ -84,7 +84,7 @@ app.use(
     secret: "yourSecretKey",
     resave: false,
     saveUninitialized: false,
-  })
+  }),
 );
 app.use(flash());
 
@@ -110,8 +110,8 @@ passport.use(
       } catch (err) {
         return done(err);
       }
-    }
-  )
+    },
+  ),
 );
 
 passport.serializeUser((user, done) => {
@@ -152,7 +152,7 @@ app.post(
     successRedirect: "/home",
     failureRedirect: "/login",
     failureFlash: true,
-  })
+  }),
 );
 
 // Route to render the registration form
@@ -228,7 +228,7 @@ app.post("/guidance", ensureAuthenticated, async (req, res) => {
 
     // Generate guidance using Google Generative AI
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       generationConfig,
     });
     const response = await model.generateContent(prompt);
@@ -258,7 +258,7 @@ app.post("/ask", async (req, res) => {
     const prompt = `You are a career guidance chat bot. Answer the following question: ${question}`;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       generationConfig,
     });
     const response = await model.generateContent(prompt);
@@ -301,7 +301,7 @@ app.post("/generate-questions", ensureAuthenticated, async (req, res) => {
     ]`;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       generationConfig,
     });
     const response = await model.generateContent(prompt);
@@ -448,7 +448,7 @@ app.post("/submit-answers", ensureAuthenticated, async (req, res) => {
     };
 
     const timeLabels = Object.keys(timings).map(
-      (key, index) => `Question ${index + 1}`
+      (key, index) => `Question ${index + 1}`,
     );
     const timeData = Object.values(timings);
 

@@ -1,4 +1,4 @@
-#Voyager 
+#Voyager
 [project link]:([https://voyager-v2.onrender.com](https://voyager-v2.onrender.com/login))
 
 ## Problem Statements
@@ -10,7 +10,8 @@
 ## Solution
 
 Meet our product Counseler. An AI based counseling for detailed career path.
-<img  src="./public/Screenshot_20240312_075325.png"/>
+<img  src="./public/screenshot_home.png"/>
+
 <!-- ![Banner](https://github.com/Dbuz/blob/master/public/Screenshot_20240312_075325.png) -->
 
 -
@@ -42,8 +43,6 @@ A smart phone or a PC
 
 - Over childhood!!
 - Increasing Competition!!
-- peer pressure is also an important role 
+- peer pressure is also an important role
 - confused seconodary level student </br>
   </br>
-
-
