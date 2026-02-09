@@ -1,5 +1,4 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const path = require("path");
 const hbs = require("hbs");
 const bcrypt = require("bcrypt");
@@ -10,6 +9,8 @@ const flash = require("connect-flash");
 const mongoose = require("mongoose");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 require("dotenv").config();
+
+const Card = require("./models/Card");
 
 const app = express();
 
@@ -60,6 +61,7 @@ const userSchema = new mongoose.Schema({
       score: Number,
       passed: Boolean,
       timings: [Number],
+      feedbackData: Object,
       date: { type: Date, default: Date.now },
     },
   ],
@@ -76,7 +78,7 @@ app.use(express.static(path.join(__dirname, "/../public")));
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 // Set up session and flash
 app.use(
@@ -196,9 +198,10 @@ const generationConfig = {
 };
 let generatedQuestionsWithAnswers = [];
 
-app.get("/ask", (req, res) => {
+app.get("/ask", ensureAuthenticated, (req, res) => {
   res.render("ask");
 });
+
 app.post("/guidance", ensureAuthenticated, async (req, res) => {
   const user = req.user;
 
@@ -395,15 +398,22 @@ hbs.registerHelper("pluck", function (array, key) {
 hbs.registerHelper("json", function (context) {
   return JSON.stringify(context);
 });
-app.get("/dashboard", async (req, res) => {
+
+app.get("/dashboard", ensureAuthenticated, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate("tests");
-    res.render("dashboard", { user });
+    const cards = await Card.find({ user: req.user._id }).sort({
+      createdAt: -1,
+    });
+
+    console.log("Cards", cards);
+
+    res.render("dashboard", { cards });
   } catch (error) {
     console.error(error);
     res.status(500).send("Server Error");
   }
 });
+
 // Route to handle answer submission
 app.post("/submit-answers", ensureAuthenticated, async (req, res) => {
   const { answers, timings, field } = req.body;
@@ -479,6 +489,25 @@ hbs.registerHelper("incrementIndex", function (index) {
 app.get("/premium", (req, res) => {
   res.render("premium");
 });
+
+app.post("/add-card", ensureAuthenticated, async (req, res) => {
+  const { projectName, projectDescription } = req.body;
+
+  try {
+    const card = new Card({
+      user: req.user._id,
+      projectName,
+      projectDescription,
+    });
+
+    await card.save();
+    res.redirect("/dashboard");
+  } catch (error) {
+    console.error("Error saving card:", error);
+    res.status(500).send("Error saving card");
+  }
+});
+
 // Start the server
 const port = process.env.PORT || 4000;
 app.listen(port, () => {

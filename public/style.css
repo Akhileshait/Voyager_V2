@@ -1,6 +1,8 @@
 * {
     font-size: 62.5%;
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body {
@@ -20,7 +22,18 @@ main {
 }
 
 .logo {
-    height: 7vh;
+    height: 8rem;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo-container span {
+    font-size: 4rem;
+    color: #26394e;
+    font-weight: bold;
 }
 
 #content-text {
