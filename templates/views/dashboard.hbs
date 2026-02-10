@@ -110,9 +110,6 @@
                             value="{{this.progress}}"
                             oninput="updateProgress('{{this._id}}', this.value)"
                             />
-                            <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{this.progress}}%;"></div>
-                            </div>
                         </div>
                         </div>
 
@@ -165,6 +162,21 @@
             }
         });
         });
+
+        function updateProgress(cardId, value) {
+            fetch(`/update-progress/${cardId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ progress: value }),
+            });
+            }
+
+            function openEdit(id, name, desc) {
+            document.getElementById("editModal").style.display = "block";
+            document.getElementById("editName").value = name;
+            document.getElementById("editDesc").value = desc;
+            document.getElementById("editForm").action = `/edit-card/${id}`;
+            }
         </script>
 
 </body>

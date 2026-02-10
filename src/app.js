@@ -81,13 +81,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Set up session and flash
+const MongoStore = require("connect-mongo").default;
+
 app.use(
   session({
-    secret: "yourSecretKey",
+    name: "voyager.sid",
+    secret: process.env.SESSION_SECRET || "supersecret",
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      sameSite: "lax",
+    },
   }),
 );
+
 app.use(flash());
 
 // Initialize Passport
@@ -552,14 +565,13 @@ app.post("/update-progress/:id", ensureAuthenticated, async (req, res) => {
 });
 
 app.get("/logout", (req, res, next) => {
-  req.logout(err => {
+  req.logout((err) => {
     if (err) return next(err);
     req.session.destroy(() => {
       res.redirect("/login");
     });
   });
 });
-
 
 // Start the server
 const port = process.env.PORT || 4000;
