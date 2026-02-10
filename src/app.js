@@ -571,6 +571,7 @@ const CareerAssessment = require("./models/CareerAssessment");
 const { VOYAGER_ASSESSMENT } = require("./constants.js");
 
 app.get("/assessment", ensureAuthenticated, (req, res) => {
+  
   res.render("assessment", {
     mcqQuestions: VOYAGER_ASSESSMENT.discovery,
     scaleQuestions: VOYAGER_ASSESSMENT.psychometric,

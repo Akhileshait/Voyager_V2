@@ -4,6 +4,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Assessment</title>
     <style>
+      .psychometric-section {
+        margin-top: 40px;
+      }
+
+      .section-hint {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      .psychometric-card {
+        padding-bottom: 28px;
+      }
+
+      .slider-container {
+        margin-top: 18px;
+        text-align: center;
+      }
+
+      /* Slider base */
+      .scale-slider {
+        width: 100%;
+        appearance: none;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          #ef4444 0%,
+          #f59e0b 25%,
+          #a3a3a3 50%,
+          #22c55e 75%,
+          #16a34a 100%
+        );
+        outline: none;
+        cursor: pointer;
+      }
+
+      /* WebKit thumb */
+      .scale-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        background: #ffffff;
+        border: 3px solid #4f46e5;
+        border-radius: 50%;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        transition: transform 0.15s ease;
+      }
+
+      .scale-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.15);
+      }
+
+      /* Firefox thumb */
+      .scale-slider::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        background: #ffffff;
+        border: 3px solid #4f46e5;
+        border-radius: 50%;
+      }
+
+      /* Dynamic label */
+      .scale-label {
+        margin-top: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #374151;
+        transition: color 0.2s ease;
+      }
+
       .assessment-container {
         max-width: 800px;
         margin: 40px auto;
@@ -79,8 +150,12 @@
 
             {{#each this.options}}
               <label class="option">
-                <input type="radio" name="mcq_{{this.id}}" value="{{this}}" />
-                <span>{{this}}</span>
+                <input
+                  type="radio"
+                  name="mcq_{{this.id}}"
+                  value="{{this.value}}"
+                />
+                <span>{{this.label}}</span>
               </label>
             {{/each}}
           </div>
@@ -88,23 +163,30 @@
       </section>
 
       <!-- SCALE SECTION -->
-      <section>
+      <section class="psychometric-section">
         <h2>Section 2: Self Assessment</h2>
+        <p class="section-hint">
+          Rate how much you agree with each statement.
+        </p>
 
         {{#each scaleQuestions}}
-          <div class="question-card">
-            <p class="question">{{this.question}}</p>
+          <div class="question-card psychometric-card">
+            <p class="question">{{this.statement}}</p>
 
-            <div class="slider-wrapper">
-              <span>1</span>
+            <div class="slider-container">
               <input
                 type="range"
                 min="1"
                 max="5"
+                step="1"
                 value="3"
+                class="scale-slider"
                 data-id="{{this.id}}"
               />
-              <span>5</span>
+
+              <div class="scale-label" id="label-{{this.id}}">
+                Neutral
+              </div>
             </div>
           </div>
         {{/each}}
@@ -115,7 +197,7 @@
       </button>
     </div>
     {{!-- prettier-ignore --}}
-    <script>
+    <script defer>
 document.getElementById("submitAssessment").addEventListener("click", async () => {
 
   const mcqAnswers = [];
@@ -148,7 +230,40 @@ document.getElementById("submitAssessment").addEventListener("click", async () =
   if (res.ok) {
     window.location.href = "/career-result";
   }
+
+
 });
+
+
+    const SCALE_TEXT = {
+  1: "Strongly Disagree",
+  2: "Disagree",
+  3: "Neutral",
+  4: "Agree",
+  5: "Strongly Agree",
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".scale-slider").forEach((slider) => {
+    const label = document.getElementById(`label-${slider.dataset.id}`);
+
+    const updateLabel = () => {
+      const value = slider.value;
+      label.textContent = SCALE_TEXT[value];
+
+      // Optional color feedback
+      if (value <= 2) label.style.color = "#dc2626";       // red
+      else if (value == 3) label.style.color = "#6b7280"; // gray
+      else label.style.color = "#16a34a";                 // green
+    };
+
+    slider.addEventListener("input", updateLabel);
+
+    // 🔥 Initialize on page load
+    updateLabel();
+  });
+});
+
 </script>
 
   </body>

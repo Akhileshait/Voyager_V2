@@ -120,3 +120,5 @@ const VOYAGER_ASSESSMENT = {
     { id: "p10", statement: "I can stay focused on a single task for several hours without getting bored.", trait: "DeepWork" }
   ]
 };
+
+export { VOYAGER_ASSESSMENT };
