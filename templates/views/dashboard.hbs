@@ -7,6 +7,7 @@
     <title>Document</title>
     <link rel="stylesheet" href="dashboard.css">
 </head>
+<div id="modalOverlay" class="modal-overlay" style="display:none;"></div>
 
 <body>
     <div class="app-container">
@@ -41,6 +42,15 @@
                                 <input type="text" name="projectName" placeholder="Project Name">
                                 <input type="text" name="projectDescription" placeholder="Project Description">
                                 <button type="submit">Submit</button>
+                                <button type="button" onclick="closeEdit()">Cancel</button>
+                            </form>
+                        </div>
+                        <div id="editModal" class="form-container"  style="display:none;">
+                            <form id="editForm" class="form" method="post">
+                                <input type="text" name="projectName" id="editName" required />
+                                <input type="text" name="projectDescription" id="editDesc" />
+                                <button type="submit">Save</button>
+                                <button type="button" onclick="closeEdit()">Cancel</button>
                             </form>
                         </div>
                     </div>
@@ -130,6 +140,9 @@
             </div>
         </div>
     </div>
+
+        
+
        <script>
             function updateProgress(cardId, value) {
             fetch(`/update-progress/${cardId}`, {
@@ -140,11 +153,19 @@
             }
 
             function openEdit(id, name, desc) {
-            document.getElementById("editModal").style.display = "block";
-            document.getElementById("editName").value = name;
-            document.getElementById("editDesc").value = desc;
-            document.getElementById("editForm").action = `/edit-card/${id}`;
-            }
+                document.getElementById("editModal").style.display = "block";
+                document.getElementById("modalOverlay").style.display = "block";
+
+                document.getElementById("editName").value = name;
+                document.getElementById("editDesc").value = desc;
+                document.getElementById("editForm").action = `/edit-card/${id}`;
+                }
+
+                function closeEdit() {
+                document.getElementById("editModal").style.display = "none";
+                document.getElementById("formContainer").style.display = "none";
+                document.getElementById("modalOverlay").style.display = "none";
+                }
 
             /* UI-only logic stays inside DOMContentLoaded */
             document.addEventListener('DOMContentLoaded', function () {
@@ -159,9 +180,9 @@
             });
 
             addButton.addEventListener("click", () => {
+                document.getElementById("modalOverlay").style.display = "block";
                 const isOpen = formContainer.style.display === "block";
                 formContainer.style.display = isOpen ? "none" : "block";
-                formouter.classList.toggle("clicked", !isOpen);
             });
             });
         </script>
