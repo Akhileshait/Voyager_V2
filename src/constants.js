@@ -7,7 +7,7 @@
 const VOYAGER_ASSESSMENT = {
   discovery: [
     {
-      id: "d1",
+      id: 1,
       question: "When you have a completely free afternoon, what are you most likely to do?",
       options: [
         { label: "Research a new topic or dive into a documentary.", value: "Investigative" },
@@ -17,7 +17,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d2",
+      id: 2,
       question: "Which of these tasks feels most like 'play' and least like 'work'?",
       options: [
         { label: "Solving a complex logic puzzle or math problem.", value: "Analytical" },
@@ -27,7 +27,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d3",
+      id: 3,
       question: "When faced with a complex puzzle, what is your first instinct?",
       options: [
         { label: "Break it down into smaller, logical parts.", value: "Technical" },
@@ -37,7 +37,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d4",
+      id: 4,
       question: "What kind of environment makes you feel most energized?",
       options: [
         { label: "A quiet, high-tech lab or focused workspace.", value: "Focused" },
@@ -47,7 +47,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d5",
+      id: 5,
       question: "In a group project, which role do you naturally gravitate toward?",
       options: [
         { label: "The Specialist: I handle the most technical/difficult part.", value: "Specialist" },
@@ -57,7 +57,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d6",
+      id: 6,
       question: "What is the most important reward you hope to get from your career?",
       options: [
         { label: "Innovation: Being at the cutting edge of my field.", value: "Innovation" },
@@ -67,7 +67,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d7",
+      id: 7,
       question: "Do you prefer working with abstract ideas, raw data, or physical objects?",
       options: [
         { label: "Raw Data: I like patterns, numbers, and hard evidence.", value: "Data" },
@@ -77,7 +77,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d8",
+      id: 8,
       question: "How do you feel about high-pressure deadlines and fast-paced changes?",
       options: [
         { label: "I prefer a steady, predictable pace so I can focus on quality.", value: "Steady" },
@@ -87,7 +87,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d9",
+      id: 9,
       question: "How do you prefer to learn a new, difficult skill?",
       options: [
         { label: "Reading manuals, books, or documentation.", value: "Visual-Logical" },
@@ -97,7 +97,7 @@ const VOYAGER_ASSESSMENT = {
       ]
     },
     {
-      id: "d10",
+      id: 10,
       question: "If you could solve one global problem, what would it be?",
       options: [
         { label: "Advancing technology to solve energy or space travel.", value: "STEM" },
@@ -108,16 +108,16 @@ const VOYAGER_ASSESSMENT = {
     }
   ],
   psychometric: [
-    { id: "p1", statement: "I enjoy taking charge of a group even if the path forward is unclear.", trait: "Leadership" },
-    { id: "p2", statement: "I find more satisfaction in finishing a task than in coming up with the idea.", trait: "Execution" },
-    { id: "p3", statement: "I am comfortable with a career that requires constant learning and re-skilling.", trait: "GrowthMindset" },
-    { id: "p4", statement: "Having a predictable daily routine is essential for my productivity.", trait: "Structure" },
-    { id: "p5", statement: "I would rather work on a project alone than as part of a high-energy team.", trait: "Autonomy" },
-    { id: "p6", statement: "I am drawn to technical details and 'how things work' under the hood.", trait: "TechnicalAptitude" },
-    { id: "p7", statement: "It is important to me that my work has a direct, visible impact on people's lives.", trait: "SocialImpact" },
-    { id: "p8", statement: "I am willing to take significant financial risks for the chance of a high reward.", trait: "RiskTolerance" },
-    { id: "p9", statement: "I prefer expressing myself through writing or art rather than data or logic.", trait: "Creativity" },
-    { id: "p10", statement: "I can stay focused on a single task for several hours without getting bored.", trait: "DeepWork" }
+    { id: 1, statement: "I enjoy taking charge of a group even if the path forward is unclear.", trait: "Leadership" },
+    { id: 2, statement: "I find more satisfaction in finishing a task than in coming up with the idea.", trait: "Execution" },
+    { id: 3, statement: "I am comfortable with a career that requires constant learning and re-skilling.", trait: "GrowthMindset" },
+    { id: 4, statement: "Having a predictable daily routine is essential for my productivity.", trait: "Structure" },
+    { id: 5, statement: "I would rather work on a project alone than as part of a high-energy team.", trait: "Autonomy" },
+    { id: 6, statement: "I am drawn to technical details and 'how things work' under the hood.", trait: "TechnicalAptitude" },
+    { id: 7, statement: "It is important to me that my work has a direct, visible impact on people's lives.", trait: "SocialImpact" },
+    { id: 8, statement: "I am willing to take significant financial risks for the chance of a high reward.", trait: "RiskTolerance" },
+    { id: 9, statement: "I prefer expressing myself through writing or art rather than data or logic.", trait: "Creativity" },
+    { id: 10, statement: "I can stay focused on a single task for several hours without getting bored.", trait: "DeepWork" }
   ]
 };
 

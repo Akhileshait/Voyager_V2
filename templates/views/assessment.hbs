@@ -152,8 +152,9 @@
               <label class="option">
                 <input
                   type="radio"
-                  name="mcq_{{this.id}}"
-                  value="{{this.value}}"
+                  name="mcq_{{this.value}}"
+                  value="{{this.label}}"
+                  data-question="{{../question}}"
                 />
                 <span>{{this.label}}</span>
               </label>
@@ -181,7 +182,7 @@
                 step="1"
                 value="3"
                 class="scale-slider"
-                data-id="{{this.id}}"
+                data-id="{{this.statement}}"
               />
 
               <div class="scale-label" id="label-{{this.id}}">
@@ -204,19 +205,20 @@ document.getElementById("submitAssessment").addEventListener("click", async () =
   const scaleAnswers = [];
 
   // MCQs
-  document.querySelectorAll("[name^='mcq_']").forEach(input => {
-    if (input.checked) {
-      mcqAnswers.push({
-        questionId: input.name.split("_")[1],
-        answer: input.value
-      });
-    }
-  });
+  
+    document
+    .querySelectorAll("input[type='radio']:checked")
+    .forEach((input) => {
+        mcqAnswers.push({
+        question: input.dataset.question,
+        answer: input.value,
+        });
+    });
 
   // Sliders
   document.querySelectorAll("input[type='range']").forEach(slider => {
     scaleAnswers.push({
-      questionId: slider.dataset.id,
+      question: slider.dataset.id,
       value: slider.value
     });
   });
@@ -228,7 +230,7 @@ document.getElementById("submitAssessment").addEventListener("click", async () =
   });
 
   if (res.ok) {
-    window.location.href = "/career-result";
+    {{!-- window.location.href = "/career-result"; --}}
   }
 
 

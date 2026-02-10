@@ -571,7 +571,6 @@ const CareerAssessment = require("./models/CareerAssessment");
 const { VOYAGER_ASSESSMENT } = require("./constants.js");
 
 app.get("/assessment", ensureAuthenticated, (req, res) => {
-  
   res.render("assessment", {
     mcqQuestions: VOYAGER_ASSESSMENT.discovery,
     scaleQuestions: VOYAGER_ASSESSMENT.psychometric,
@@ -582,27 +581,10 @@ app.get("/assessment", ensureAuthenticated, (req, res) => {
 app.post("/submit-career-test", ensureAuthenticated, async (req, res) => {
   const { mcqAnswers, scaleAnswers } = req.body;
 
-  // Example scoring logic
-  const scoreSummary = {
-    analytical: scaleAnswers
-      .slice(0, 3)
-      .reduce((a, b) => a + Number(b.value), 0),
-    creativity: scaleAnswers
-      .slice(3, 6)
-      .reduce((a, b) => a + Number(b.value), 0),
-    leadership: scaleAnswers
-      .slice(6, 8)
-      .reduce((a, b) => a + Number(b.value), 0),
-    stability: scaleAnswers
-      .slice(8, 10)
-      .reduce((a, b) => a + Number(b.value), 0),
-  };
-
-  await CareerAssessment.create({
+  const saved = await CareerAssessment.create({
     user: req.user._id,
     mcqAnswers,
     scaleAnswers,
-    scoreSummary,
   });
 
   res.json({ success: true });

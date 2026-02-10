@@ -9,24 +9,17 @@ const careerAssessmentSchema = new mongoose.Schema({
 
   mcqAnswers: [
     {
-      questionId: Number,
+      question: String,
       answer: String,
     },
   ],
 
   scaleAnswers: [
     {
-      questionId: Number,
+      question: String,
       value: Number, // 1–5
     },
   ],
-
-  scoreSummary: {
-    analytical: Number,
-    creativity: Number,
-    leadership: Number,
-    stability: Number,
-  },
 
   createdAt: {
     type: Date,
