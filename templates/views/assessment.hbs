@@ -1,0 +1,155 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assessment</title>
+    <style>
+      .assessment-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      .question-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+      }
+
+      .question {
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .option {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        cursor: pointer;
+      }
+
+      .option input {
+        accent-color: #4f46e5;
+      }
+
+      .slider-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      input[type="range"] {
+        flex: 1;
+      }
+
+      .submit-btn {
+        margin-top: 30px;
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        border: none;
+        font-size: 16px;
+        background: linear-gradient(135deg, #4f46e5, #22c55e);
+        color: white;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="assessment-container">
+
+      <h1>Career Assessment</h1>
+      <p class="subtitle">Answer honestly. There are no right or wrong answers.</p>
+
+      <!-- MCQ SECTION -->
+      <section>
+        <h2>Section 1: Situational Questions</h2>
+
+        {{#each mcqQuestions}}
+          <div class="question-card">
+            <p class="question">{{this.question}}</p>
+
+            {{#each this.options}}
+              <label class="option">
+                <input type="radio" name="mcq_{{this.id}}" value="{{this}}" />
+                <span>{{this}}</span>
+              </label>
+            {{/each}}
+          </div>
+        {{/each}}
+      </section>
+
+      <!-- SCALE SECTION -->
+      <section>
+        <h2>Section 2: Self Assessment</h2>
+
+        {{#each scaleQuestions}}
+          <div class="question-card">
+            <p class="question">{{this.question}}</p>
+
+            <div class="slider-wrapper">
+              <span>1</span>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value="3"
+                data-id="{{this.id}}"
+              />
+              <span>5</span>
+            </div>
+          </div>
+        {{/each}}
+      </section>
+
+      <button id="submitAssessment" class="submit-btn">
+        Submit Assessment
+      </button>
+    </div>
+    {{!-- prettier-ignore --}}
+    <script>
+document.getElementById("submitAssessment").addEventListener("click", async () => {
+
+  const mcqAnswers = [];
+  const scaleAnswers = [];
+
+  // MCQs
+  document.querySelectorAll("[name^='mcq_']").forEach(input => {
+    if (input.checked) {
+      mcqAnswers.push({
+        questionId: input.name.split("_")[1],
+        answer: input.value
+      });
+    }
+  });
+
+  // Sliders
+  document.querySelectorAll("input[type='range']").forEach(slider => {
+    scaleAnswers.push({
+      questionId: slider.dataset.id,
+      value: slider.value
+    });
+  });
+
+  const res = await fetch("/submit-career-test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mcqAnswers, scaleAnswers })
+  });
+
+  if (res.ok) {
+    window.location.href = "/career-result";
+  }
+});
+</script>
+
+  </body>
+</html>
