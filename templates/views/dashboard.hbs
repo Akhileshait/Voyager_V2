@@ -98,7 +98,24 @@
                             <p class="box-content-header">{{this.projectName}}</p>
                             <p class="box-content-subheader">{{this.projectDescription}}</p>
                         </div>
+                         <!-- Progress -->
+                        <div class="progress-section">
+                            <div class="progress-label">
+                            Progress <span>{{this.progress}}%</span>
+                            </div>
+                            <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value="{{this.progress}}"
+                            oninput="updateProgress('{{this._id}}', this.value)"
+                            />
+                            <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{this.progress}}%;"></div>
+                            </div>
                         </div>
+                        </div>
+
                     </div>
                     {{else}}
                     <p style="opacity:0.6;">No career goals added yet.</p>

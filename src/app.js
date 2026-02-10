@@ -407,7 +407,7 @@ app.get("/dashboard", ensureAuthenticated, async (req, res) => {
 
     console.log("Cards", cards);
 
-    res.render("dashboard", { cards });
+    res.render("dashboard", { cards, userName: req.user.name });
   } catch (error) {
     console.error(error);
     res.status(500).send("Server Error");
@@ -507,6 +507,59 @@ app.post("/add-card", ensureAuthenticated, async (req, res) => {
     res.status(500).send("Error saving card");
   }
 });
+
+app.post("/delete-card/:id", ensureAuthenticated, async (req, res) => {
+  try {
+    await Card.deleteOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Delete failed");
+  }
+});
+
+app.post("/edit-card/:id", ensureAuthenticated, async (req, res) => {
+  const { projectName, projectDescription } = req.body;
+
+  try {
+    await Card.updateOne(
+      { _id: req.params.id, user: req.user._id },
+      { projectName, projectDescription },
+    );
+    res.redirect("/dashboard");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Edit failed");
+  }
+});
+
+app.post("/update-progress/:id", ensureAuthenticated, async (req, res) => {
+  const { progress } = req.body;
+
+  try {
+    await Card.updateOne(
+      { _id: req.params.id, user: req.user._id },
+      { progress },
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+app.get("/logout", (req, res, next) => {
+  req.logout(err => {
+    if (err) return next(err);
+    req.session.destroy(() => {
+      res.redirect("/login");
+    });
+  });
+});
+
 
 // Start the server
 const port = process.env.PORT || 4000;
