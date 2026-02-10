@@ -506,6 +506,8 @@ app.get("/premium", (req, res) => {
 app.post("/add-card", ensureAuthenticated, async (req, res) => {
   const { projectName, projectDescription } = req.body;
 
+  console.log("Received card data:", req.body);
+
   try {
     const card = new Card({
       user: req.user._id,

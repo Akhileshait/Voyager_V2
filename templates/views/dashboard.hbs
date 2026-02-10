@@ -81,7 +81,7 @@
                         <div class="project-box" style="background-color: #fee4cb;">
                         <div class="project-box-header">
                             <span>{{this.projectName}}</span>
-                            <div class="more-wrapper">
+                            <div class="dropdown">
                             <button class="project-btn-more">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -91,6 +91,14 @@
                                 <circle cx="12" cy="19" r="1" />
                                 </svg>
                             </button>
+                            <div class="dropdown-menu">
+                                <button onclick="openEdit('{{this._id}}', '{{this.projectName}}', '{{this.projectDescription}}')">
+                                Edit
+                                </button>
+                                <form action="/delete-card/{{this._id}}" method="post">
+                                <button type="submit" class="danger">Delete</button>
+                                </form>
+                            </div>
                             </div>
                         </div>
 
@@ -115,55 +123,15 @@
 
                     </div>
                     {{else}}
-                    <p style="opacity:0.6;">No career goals added yet.</p>
+                   <p class="empty-state">No career goals added yet.</p>
                     {{/each}}
                 </div>
 
             </div>
         </div>
     </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-        const modeSwitch = document.querySelector('.mode-switch');
-        const addButton = document.getElementById('addButton');
-        const formContainer = document.getElementById('formContainer');
-        const formouter = document.querySelector('.formouter');
-        const projectForm = document.getElementById('projectForm');
-
-        modeSwitch.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            modeSwitch.classList.toggle('active');
-        });
-
-        addButton.addEventListener('click', () => {
-            const isHidden = formContainer.style.display === 'none';
-            formContainer.style.display = isHidden ? 'block' : 'none';
-            formouter.classList.toggle('clicked', isHidden);
-        });
-
-        projectForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); 
-
-            try {
-            const formData = new FormData(projectForm);
-
-            const response = await fetch('/add-card', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                location.reload();
-            } else {
-                alert('Failed to add goal');
-            }
-            } catch (error) {
-            console.error('Error submitting form:', error);
-            }
-        });
-        });
-
-        function updateProgress(cardId, value) {
+       <script>
+            function updateProgress(cardId, value) {
             fetch(`/update-progress/${cardId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -177,7 +145,27 @@
             document.getElementById("editDesc").value = desc;
             document.getElementById("editForm").action = `/edit-card/${id}`;
             }
+
+            /* UI-only logic stays inside DOMContentLoaded */
+            document.addEventListener('DOMContentLoaded', function () {
+            const modeSwitch = document.querySelector('.mode-switch');
+            const addButton = document.getElementById('addButton');
+            const formContainer = document.getElementById('formContainer');
+            const formouter = document.querySelector('.formouter');
+
+            modeSwitch.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                modeSwitch.classList.toggle('active');
+            });
+
+            addButton.addEventListener("click", () => {
+                const isOpen = formContainer.style.display === "block";
+                formContainer.style.display = isOpen ? "none" : "block";
+                formouter.classList.toggle("clicked", !isOpen);
+            });
+            });
         </script>
+
 
 </body>
 
