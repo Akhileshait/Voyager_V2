@@ -1,161 +1,202 @@
-<!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Career Guidance Chat</title>
-    <link href="https://fonts.googleapis.com/css?family=Josefin+Sans" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css?family=Josefin+Sans"
+      rel="stylesheet"
+    />
     <style>
-        html,
-        body {
-            padding: 0;
-            margin: 0;
-            max-width: 100%;
-            user-select: none;
-            background-color: #f0f2f5;
-            font-family: 'Josefin Sans', sans-serif;
-        }
+      :root {
+        --bg: #f4f6fb;
+        --panel: #ffffff;
+        --primary: #4f46e5;
+        --secondary: #22c55e;
+        --text: #111827;
+        --muted: #6b7280;
+      }
 
-        header {
-            background-color: #1e88e5;
-            color: #fff;
-            padding: 10px 20px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-        }
+      * {
+        box-sizing: border-box;
+      }
 
-        main {
-            width: 80%;
-            margin: auto;
-            padding: 10px;
-            height: calc(100vh - 120px);
-            overflow-y: auto;
-        }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        font-family: Inter, system-ui, sans-serif;
+      }
 
-        footer {
-            background-color: #fff;
-            padding: 10px;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+      /* HEADER */
+      .chat-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        color: white;
+        padding: 14px 20px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      }
 
-        #command {
-            width: 100%;
-            max-width: 600px;
-            display: flex;
-        }
+      .chat-header .brand {
+        font-size: 18px;
+        font-weight: 600;
+      }
 
-        #questionInput {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            margin-right: 10px;
-            font-size: 16px;
-            width: fit-content;
-        }
+      .chat-header .subtitle {
+        font-size: 13px;
+        opacity: 0.9;
+      }
 
-        button {
-            background-color: #1e88e5;
-            color: #fff;
-            border: none;
-            border-radius: 20px;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 16px;
-        }
+      /* CHAT BODY */
+      .chat-body {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px 16px 140px;
+        overflow-y: auto;
+      }
 
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+      /* MESSAGE */
+      .message {
+        max-width: 75%;
+        padding: 14px 16px;
+        border-radius: 16px;
+        margin-bottom: 14px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        animation: fadeUp 0.25s ease;
+      }
 
-        .message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 10px;
-            max-width: 70%;
-            width: fit-content;
-            word-wrap: break-word;
-            white-space: pre-wrap; /* Preserve whitespace */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
         }
-
-        .message.user {
-            background-color: #1e88e5;
-            color: #fff;
-            margin-left: auto;
-            text-align: right;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
+      }
 
-        .message.ai {
-            background-color: #fff;
-            color: #000;
-            margin-right: auto;
-            text-align: left;
+      .message.user {
+        margin-left: auto;
+        background: var(--primary);
+        color: white;
+        border-bottom-right-radius: 6px;
+      }
+
+      .message.ai {
+        margin-right: auto;
+        background: var(--panel);
+        color: var(--text);
+        border-bottom-left-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+      }
+
+      /* INPUT BAR */
+      .chat-input-bar {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid #e5e7eb;
+        padding: 14px;
+      }
+
+      .input-wrapper {
+        max-width: 900px;
+        margin: auto;
+        display: flex;
+        gap: 10px;
+      }
+
+      input#questionInput {
+        flex: 1;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid #e5e7eb;
+        font-size: 15px;
+        outline: none;
+      }
+
+      input#questionInput:focus {
+        border-color: var(--primary);
+      }
+
+      /* BUTTONS */
+      button {
+        padding: 12px 18px;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      button:not(.secondary) {
+        background: var(--primary);
+        color: white;
+      }
+
+      button.secondary {
+        background: var(--secondary);
+        color: white;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      /* TYPING */
+      .typing-indicator::after {
+        content: "▋";
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
         }
-
-        .loading {
-            color: #999;
-            font-style: italic;
+        50% {
+          opacity: 0;
         }
-
-        .typing-indicator {
-            display: inline-block;
-            width: 0;
-            height: 1em;
-            overflow: hidden;
-            white-space: nowrap;
-            vertical-align: bottom;
-            animation: typing 1.5s steps(30, end) forwards;
-        }
-
-        @keyframes typing {
-            from {
-                width: 0;
-            }
-
-            to {
-                width: 100%;
-            }
-        }
-
-        button#guidanceButton {
-            background-color: #4caf50;
-            /* Different color for distinction */
-            margin-left: 10px;
-        }
-
-        button#guidanceButton:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
-    <header>
-        Career Guidance Chat
+  <body>
+    <header class="chat-header">
+      <div class="brand">Voyager AI</div>
+      <div class="subtitle">Career Guidance Assistant</div>
     </header>
 
-    <main id="chatContainer">
-        <!-- Messages will be displayed here -->
-    </main>
+    <main id="chatContainer" class="chat-body"></main>
 
-    <footer>
-        <div id="command">
-            <input id="questionInput" placeholder="Type your question here..." type="text" />
-            <button id="askButton">Send</button>
-            <button id="guidanceButton">Take Guidance on Your Portfolio</button>
-        </div>
+    <footer class="chat-input-bar">
+      <div class="input-wrapper">
+        <input
+          id="questionInput"
+          placeholder="Ask about careers, skills, or your assessment…"
+          type="text"
+        />
+        <button id="askButton">Send</button>
+        <button id="guidanceButton" class="secondary">
+          Portfolio Guidance
+        </button>
+      </div>
     </footer>
 
+    {{!-- prettier-ignore --}}
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const chatContainer = document.querySelector("#chatContainer");
@@ -181,17 +222,14 @@
 
             // Function to simulate typing effect
             const simulateTyping = (messageDiv, text) => {
-                let index = 0;
-                messageDiv.innerHTML = ''; // Clear previous content
-                const typingInterval = setInterval(() => {
-                    if (index < text.length) {
-                        messageDiv.innerHTML = text.substring(0, index + 1) + '<span class="typing-indicator"></span>';
-                        index++;
-                    } else {
-                        clearInterval(typingInterval);
-                    }
-                }, 10); // Adjust typing speed here (lower is faster)
-            };
+                let i = 0;
+                const interval = setInterval(() => {
+                    messageDiv.textContent = text.slice(0, i++);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    if (i > text.length) clearInterval(interval);
+                }, 12);
+                };
+
 
             // Handle click event on the Send button
             askButton.addEventListener("click", async () => {
@@ -199,7 +237,7 @@
                 if (question) {
                     questionInput.value = ""; // Clear input field
                     addMessage(question, true); // Add user's message
-                    const loadingMessage = addMessage("Loading...", false); // Add loading message
+                    const loadingMessage = addMessage("Thinking...", false); // Add loading message
                     askButton.disabled = true; // Disable button to prevent multiple clicks
 
                     try {
@@ -280,6 +318,6 @@
         });
     </script>
 
-</body>
+  </body>
 
 </html>

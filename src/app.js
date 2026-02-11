@@ -215,56 +215,128 @@ app.get("/ask", ensureAuthenticated, (req, res) => {
   res.render("ask");
 });
 
+const CareerAssessment = require("./models/CareerAssessment");
+
 app.post("/guidance", ensureAuthenticated, async (req, res) => {
-  const user = req.user;
-
-  if (!user) {
-    return res.status(401).json({ guidance: "User not authenticated" });
-  }
-
-  // Example of extracting user data (you should tailor this to your specific data structure)
-  const { username, tests } = user;
-
   try {
-    // Format user data for guidance
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ guidance: "User not authenticated" });
+    }
+
+    const { username, tests } = user;
+
+    /* =============================
+       BASIC TEST PERFORMANCE
+       ============================= */
+
+    const totalTests = tests.length;
+
     const performanceSummary = {
-      totalTests: tests.length,
+      totalTests,
       averageScore:
-        tests.reduce((acc, test) => acc + (test.score || 0), 0) / tests.length,
-      passedTests: tests.filter((test) => test.passed).length,
-      failedTests: tests.filter((test) => !test.passed).length,
+        totalTests === 0
+          ? 0
+          : Math.round(
+              tests.reduce((acc, t) => acc + (t.score || 0), 0) / totalTests,
+            ),
+      passedTests: tests.filter((t) => t.passed).length,
+      failedTests: tests.filter((t) => !t.passed).length,
     };
 
+    /* =============================
+       FETCH LATEST CAREER ASSESSMENT
+       ============================= */
+
+    const assessment = await CareerAssessment.findOne({ user: user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    let mcqText = "No career assessment MCQ responses available.";
+    let scaleText = "No self-assessment scale responses available.";
+
+    if (assessment) {
+      mcqText = assessment.mcqAnswers
+        .map(
+          (a, i) => `${i + 1}. Question: ${a.question}\n   Answer: ${a.answer}`,
+        )
+        .join("\n");
+
+      scaleText = assessment.scaleAnswers
+        .map(
+          (a, i) =>
+            `${i + 1}. Statement: ${a.question}\n   Rating: ${a.value} / 5`,
+        )
+        .join("\n");
+    }
+
+    /* =============================
+       AI PROMPT (RAW, MODEL-LED)
+       ============================= */
+
     const prompt = `
-      Based on the following user performance data, provide career guidance and suggest potential career paths:
-      User: ${username}
-      Performance Summary: ${JSON.stringify(performanceSummary)}
+You are an expert career counselor.
 
-      Provide a detailed career guidance including suggestions for improvement and possible career paths.`;
+USER
+----
+Username: ${username}
 
-    // Generate guidance using Google Generative AI
+ACADEMIC / TEST PERFORMANCE
+---------------------------
+- Total Tests Taken: ${performanceSummary.totalTests}
+- Average Score: ${performanceSummary.averageScore}%
+- Passed Tests: ${performanceSummary.passedTests}
+- Failed Tests: ${performanceSummary.failedTests}
+
+CAREER ASSESSMENT – DISCOVERY QUESTIONS (MCQs)
+----------------------------------------------
+${mcqText}
+
+CAREER ASSESSMENT – SELF ASSESSMENT (SCALE 1–5)
+-----------------------------------------------
+${scaleText}
+
+TASK
+----
+Analyze the user's answers holistically and provide:
+
+1. A short summary of the user's natural strengths, interests, and working style.
+2. 3–4 career paths that genuinely align with the user's responses.
+3. A brief explanation (1–2 lines) of why each career fits.
+4. Practical next steps the user can take in the next 3–6 months.
+
+STYLE RULES
+-----------
+- Keep language simple and encouraging.
+- Be specific, not generic.
+- Do NOT mention scores, traits, or psychometric terms explicitly.
+- Do NOT include markdown, JSON, emojis, or disclaimers.
+`;
+
+    /* =============================
+       GENERATE RESPONSE
+       ============================= */
+
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       generationConfig,
     });
-    const response = await model.generateContent(prompt);
-    const generatedText = response.response
-      ? await response.response.text()
-      : "";
 
-    // Clean up the response
-    const cleanedText = generatedText
-      .replace(/```json|```/g, "") // Remove markdown JSON blocks
-      .replace(/\*\*|\*/g, "") // Remove asterisks
-      .replace(/(\r\n|\n|\r)/gm, "") // Remove line breaks
-      .replace(/",\s*}/g, '"}') // Fix trailing commas before closing braces
+    const response = await model.generateContent(prompt);
+    const text = response.response ? await response.response.text() : "";
+
+    const cleanedText = text
+      .replace(/```/g, "")
+      .replace(/\r?\n{3,}/g, "\n\n")
       .trim();
 
-    // Return the generated guidance
     res.json({ guidance: cleanedText });
   } catch (error) {
     console.error("Error generating guidance:", error);
-    res.status(500).json({ guidance: "Failed to generate guidance" });
+    res.status(500).json({
+      guidance:
+        "We couldn’t generate guidance right now. Please try again later.",
+    });
   }
 });
 
@@ -565,8 +637,6 @@ app.post("/update-progress/:id", ensureAuthenticated, async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
-const CareerAssessment = require("./models/CareerAssessment");
 
 const { VOYAGER_ASSESSMENT } = require("./constants.js");
 
