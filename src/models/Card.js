@@ -1,5 +1,5 @@
 // models/Card.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const cardSchema = new mongoose.Schema({
   user: {
@@ -26,4 +26,4 @@ const cardSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("Card", cardSchema);
+export default mongoose.model("Card", cardSchema);

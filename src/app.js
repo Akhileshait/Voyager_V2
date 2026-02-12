@@ -1,25 +1,29 @@
 import express from "express";
 import path from "path";
-const hbs = require("hbs");
-const bcrypt = require("bcrypt");
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const session = require("express-session");
-const flash = require("connect-flash");
-const mongoose = require("mongoose");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-require("dotenv").config();
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import hbs from "hbs";
+import bcrypt from "bcrypt";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import flash from "connect-flash";
+import mongoose from "mongoose";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
+import Card from "./models/Card.js";
 
-const Card = require("./models/Card");
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
   })
@@ -72,16 +76,13 @@ const User = mongoose.model("User", userSchema);
 
 // Set up view engine
 app.set("view engine", "hbs");
-app.set("views", path.join(__dirname, "/../templates/views"));
-hbs.registerPartials(path.join(__dirname, "/../templates/views/partials"));
-app.use(express.static(path.join(__dirname, "/../public")));
+app.set("views", path.join(__dirname, "../templates/views"));
+hbs.registerPartials(path.join(__dirname, "../templates/views/partials"));
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Set up session and flash
-const MongoStore = require("connect-mongo").default;
 
 app.use(
   session({
@@ -219,9 +220,11 @@ import { Queue } from "bullmq";
 import OpenAI from "openai";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
+import CareerAssessment from "./models/CareerAssessment.js";
+import { VOYAGER_ASSESSMENT } from "./constants.js";
 
 const client = new OpenAI({
-  apiKey: "YOUR_API_KEY",
+  apiKey: process.env.OPENAI_API_KEY || "YOUR_API_KEY",
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
 });
 
@@ -233,8 +236,6 @@ const careerQueue = new Queue("career-upload", {
 app.post("/ingest-market-data", (req, res) => {
   // Logic to add PDF to careerQueue...
 });
-
-const CareerAssessment = require("./models/CareerAssessment");
 
 app.post("/guidance", ensureAuthenticated, async (req, res) => {
   try {
@@ -683,8 +684,6 @@ app.post("/update-progress/:id", ensureAuthenticated, async (req, res) => {
   }
 });
 
-const { VOYAGER_ASSESSMENT } = require("./constants.js");
-
 app.get("/assessment", ensureAuthenticated, (req, res) => {
   res.render("assessment", {
     mcqQuestions: VOYAGER_ASSESSMENT.discovery,
@@ -719,3 +718,5 @@ const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+export default app;

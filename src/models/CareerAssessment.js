@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const careerAssessmentSchema = new mongoose.Schema({
   user: {
@@ -27,4 +27,4 @@ const careerAssessmentSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("CareerAssessment", careerAssessmentSchema);
+export default mongoose.model("CareerAssessment", careerAssessmentSchema);
