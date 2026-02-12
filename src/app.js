@@ -1,5 +1,5 @@
-const express = require("express");
-const path = require("path");
+import express from "express";
+import path from "path";
 const hbs = require("hbs");
 const bcrypt = require("bcrypt");
 const passport = require("passport");
@@ -215,6 +215,25 @@ app.get("/ask", ensureAuthenticated, (req, res) => {
   res.render("ask");
 });
 
+import { Queue } from "bullmq";
+import OpenAI from "openai";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { QdrantVectorStore } from "@langchain/qdrant";
+
+const client = new OpenAI({
+  apiKey: "YOUR_API_KEY",
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+});
+
+const careerQueue = new Queue("career-upload", {
+  connection: { host: "localhost", port: 6379 },
+});
+
+// 1. Endpoint to ingest market reports
+app.post("/ingest-market-data", (req, res) => {
+  // Logic to add PDF to careerQueue...
+});
+
 const CareerAssessment = require("./models/CareerAssessment");
 
 app.post("/guidance", ensureAuthenticated, async (req, res) => {
@@ -270,12 +289,38 @@ app.post("/guidance", ensureAuthenticated, async (req, res) => {
         .join("\n");
     }
 
+    // Convert profile to search query
+    const query = `Recommend careers for someone who likes ${mcqText} and ${scaleText} and is skilled in ${performanceSummary}.`;
+
+    const embeddings = new GoogleGenerativeAIEmbeddings({
+      model: "text-embedding-004",
+      apiKey: process.env.GOOGLE_GENERATIVE_AI_KEY,
+    });
+
+    const vectorStore = await QdrantVectorStore.fromExistingCollection(
+      embeddings,
+      {
+        url: "http://localhost:6333",
+        collectionName: "career-knowledge",
+      },
+    );
+
+    // Retrieve top 3 relevant market trends/job descriptions
+    const searchResults = await vectorStore.similaritySearch(query, 3);
+    const marketContext = searchResults.map((d) => d.pageContent).join("\n\n");
+
     /* =============================
        AI PROMPT (RAW, MODEL-LED)
        ============================= */
 
     const prompt = `
 You are an expert career counselor.
+You are the Voyager AI Career Counselor. 
+    Use the following 2026 Market Context to guide the student:
+    ---
+    ${marketContext}
+    ---
+    Analyze the student's profile and provide 3 specialized career paths with 'Why' and 'Next Steps'.
 
 USER
 ----
