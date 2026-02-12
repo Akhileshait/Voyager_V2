@@ -11,7 +11,7 @@ async function init() {
   if (!exists) {
     await client.createCollection("career-knowledge", {
       vectors: {
-        size: 768, // Correct for text-embedding-004
+        size: 3072, // Correct for text-embedding-004
         distance: "Cosine",
       },
     });

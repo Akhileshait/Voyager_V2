@@ -224,17 +224,64 @@ import CareerAssessment from "./models/CareerAssessment.js";
 import { VOYAGER_ASSESSMENT } from "./constants.js";
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "YOUR_API_KEY",
+  apiKey:
+    process.env.OPENAI_API_KEY || "AIzaSyB2BqN_HUBqew-c3ACUKx9hhflH4-aE1T0",
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
 });
 
-const careerQueue = new Queue("career-upload", {
-  connection: { host: "localhost", port: 6379 },
-});
+import fs from "fs";
+import { QueueEvents } from "bullmq";
+import { TaskType } from "@google/generative-ai";
+const connection = { host: "localhost", port: 6379 }; // Valkey connection
+
+const careerQueue = new Queue("file-upload", { connection });
+const queueEvents = new QueueEvents("file-upload", { connection });
+
+careerQueue.setMaxListeners(50);
+queueEvents.setMaxListeners(50);
 
 // 1. Endpoint to ingest market reports
-app.post("/ingest-market-data", (req, res) => {
-  // Logic to add PDF to careerQueue...
+app.post("/ingest-data", async (req, res) => {
+  const PDF_FOLDER = "./pdfs"; // Path to your local folder
+
+  try {
+    const files = fs
+      .readdirSync(PDF_FOLDER)
+      .filter((file) => path.extname(file).toLowerCase() === ".pdf");
+
+    if (files.length === 0) {
+      return res.status(400).json({ message: "No PDFs found in folder." });
+    }
+
+    console.log(`Adding ${files.length} files to queue...`);
+
+    // 1. Add all files to the queue and keep track of Job IDs
+    const jobs = await Promise.all(
+      files.map((file) =>
+        careerQueue.add(
+          "process-pdf",
+          {
+            filename: file,
+            path: path.resolve(PDF_FOLDER, file),
+          },
+          { removeOnComplete: true },
+        ),
+      ),
+    );
+
+    // 2. Wait for all specific Job IDs to complete
+    // We wait for each job's completion event
+    await Promise.all(jobs.map((job) => job.waitUntilFinished(queueEvents)));
+
+    // 3. Send success only after all workers are done
+    res.json({
+      message: "Success: All PDFs ingested and indexed in Qdrant.",
+      count: files.length,
+    });
+  } catch (error) {
+    console.error("Ingestion failed:", error);
+    res.status(500).json({ error: "Internal Server Error during ingestion" });
+  }
 });
 
 app.post("/guidance", ensureAuthenticated, async (req, res) => {
@@ -293,9 +340,12 @@ app.post("/guidance", ensureAuthenticated, async (req, res) => {
     // Convert profile to search query
     const query = `Recommend careers for someone who likes ${mcqText} and ${scaleText} and is skilled in ${performanceSummary}.`;
 
+    const key = "AIzaSyB2BqN_HUBqew-c3ACUKx9hhflH4-aE1T0";
+
     const embeddings = new GoogleGenerativeAIEmbeddings({
-      model: "text-embedding-004",
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_KEY,
+      apiKey: key,
+      model: "gemini-embedding-001", // The unified model you found in the docs
+      taskType: TaskType.RETRIEVAL_DOCUMENT, // Use DOCUMENT for ingestion (worker)
     });
 
     const vectorStore = await QdrantVectorStore.fromExistingCollection(
@@ -309,6 +359,8 @@ app.post("/guidance", ensureAuthenticated, async (req, res) => {
     // Retrieve top 3 relevant market trends/job descriptions
     const searchResults = await vectorStore.similaritySearch(query, 3);
     const marketContext = searchResults.map((d) => d.pageContent).join("\n\n");
+
+    console.log(marketContext);
 
     /* =============================
        AI PROMPT (RAW, MODEL-LED)
